@@ -3,7 +3,6 @@ const axios = require("axios");
 const { generateRandomKey, generalWebhook, isValidIP } = require('./config/general');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v10');
-const webHookJson = require("./config/json/test.json")
 const ipAuthJson = require("./config/json/auth.json")
 const bindJson = require("./config/json/bind.json")
 const generateJson = require("./config/json/generate.json")
@@ -13,8 +12,9 @@ require('dotenv').config();
 
 const discordbot = () => {
     let userData = {};
-    const id = '1237160168836300800';
-    const token = 'UZtNb5aMTRBczstkMPYDlN62Ltjz4RNy7jFZsdp5QyTf4oFelVTUzN8aE2LcpWe1tjq_';
+    const SERVER_API = process.env.SERVER_API;
+    const id = process.env.CHANNEL_ID;
+    const token = process.env.CHANNEL_WEBHOOK_TOKEN;
     const client = new Client({
         intents: [
             GatewayIntentBits.Guilds,
@@ -84,7 +84,7 @@ const discordbot = () => {
                 // Now you have the keyname
                 console.log('Keyname:', keyname);
                 let flag = 0;
-                const keyData = await axios.get("http://localhost:5000/api/getgeneratedkey");
+                const keyData = await axios.get(SERVER_API + "/api/getgeneratedkey");
                 if (keyData.data.length > 0) {
                     keyData.data.map((item) => {
                         if (keyname === item.key) {
@@ -93,7 +93,7 @@ const discordbot = () => {
                     })
                     if (flag == 1) {
                         const keytype = keyname.substring(0, 2);
-                        const users = await axios.post("http://localhost:5000/api/removekey", { key: keyname }).then((data) => data.data);
+                        const users = await axios.post(SERVER_API + "/api/removekey", { key: keyname }).then((data) => data.data);
                         users.map(async (item) => {
                             const user = await client.users.fetch(item.discord_id);
                             const dmChannel = await user.createDM();
@@ -131,7 +131,7 @@ const discordbot = () => {
                 const discordname = messageParts[2];
                 // Now you have the keyname
                 let flag = 0;
-                const keyData = await axios.get("http://localhost:5000/api/getgeneratedkey");
+                const keyData = await axios.get(SERVER_API + "/api/getgeneratedkey");
                 let expiredate;
                 console.log(keyname, "keyname")
                 if (keyData.data.length > 0) {
@@ -158,9 +158,9 @@ const discordbot = () => {
                         } catch (error) {
                             await message.reply({ content: 'User is not exist', components: [] });
                         }
-                        await axios.post("http://localhost:5000/api/adduser", { key: keyname, checkbind: true }).then((data) => console.log("data")).catch((err) => console.log(err));
+                        await axios.post(SERVER_API + "/api/adduser", { key: keyname, checkbind: true }).then((data) => console.log("data")).catch((err) => console.log(err));
                         console.log(userData, "userData")
-                        await axios.post("http://localhost:5000/api/adduser", userData);
+                        await axios.post(SERVER_API + "/api/adduser", userData);
                         await message.reply({ content: 'Bind.. Sent', components: [] });
 
                     }
@@ -179,7 +179,7 @@ const discordbot = () => {
 
         if (message.content === '!overview') {
             // Create a button
-            const keyData = await axios.post("http://localhost:5000/api/getavailableusers");
+            const keyData = await axios.post(SERVER_API + "/api/getavailableusers");
             console.log(keyData.data)
             let description = "\n\n";
             if (keyData.data.length > 0) {
@@ -239,7 +239,7 @@ const discordbot = () => {
             userData.key = key;
             userData.expire_time = Number(interaction.customId) * 60 * 60 * 1000;
             console.log(Math.floor(new Date(Date.now() + userData.expire_time).getTime() / 1000))
-            await axios.post("http://localhost:5000/api/adduser", userData).then((data) => console.log(data)).catch((err) => console.log(err));
+            await axios.post(SERVER_API + "/api/adduser", userData).then((data) => console.log(data)).catch((err) => console.log(err));
             description = "**" + userData.key_type + "-KEY :** \n```" + userData.key + "```*autodelete * <t:" + (Math.floor(new Date(Date.now() + userData.expire_time).getTime() / 1000)) + ":R>"
             generalWebhook(id, token, description, generateJson)
             await interaction.update({ content: 'Created', components: [] });
@@ -247,7 +247,7 @@ const discordbot = () => {
     });
     client.on('interactionCreate', async interaction => {
         if (!interaction.isChatInputCommand()) return;
-        const data = await axios.get("http://localhost:5000/api/users");
+        const data = await axios.get(SERVER_API + "/api/users");
         let flag = 0;
         data.data.map((item) => {
             if (item.discord_id === interaction.user.id) {
@@ -291,7 +291,7 @@ const discordbot = () => {
             await interaction.reply(ipAuthJson);
             console.log(interaction.user)
             console.log(userData)
-            await axios.post("http://localhost:5000/api/adduser", userData).then((data) => console.log("data")).catch((err) => console.log(err));
+            await axios.post(SERVER_API + "/api/adduser", userData).then((data) => console.log("data")).catch((err) => console.log(err));
         }
     });
     client.login(process.env.CLIENT_TOKEN);
